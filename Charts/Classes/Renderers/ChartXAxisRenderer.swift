@@ -167,7 +167,7 @@ public class ChartXAxisRenderer: ChartAxisRendererBase
             labelMaxSize.width = xAxis.wordWrapWidthPercent * valueToPixelMatrix.a
         }
         
-        for i in self.minX.stride(to: min(self.maxX + 1, xAxis.values.count), by: xAxis.axisLabelModulus)
+        for i in self.minX.stride(to: min(self.maxX + 1, xAxis.values.count), by: 1)
         {
             let label = xAxis.values[i]
             if (label == nil)
@@ -202,8 +202,9 @@ public class ChartXAxisRenderer: ChartAxisRendererBase
                         position.x += width / 2.0
                     }
                 }
-                
-                drawLabel(context: context, label: label!, xIndex: i, x: position.x, y: pos, attributes: labelAttrs, constrainedToSize: labelMaxSize, anchor: anchor, angleRadians: labelRotationAngleRadians)
+                if (i == 0 || i == xAxis.values.count - 1) {
+                    drawLabel(context: context, label: label!, xIndex: i, x: position.x, y: pos, attributes: labelAttrs, constrainedToSize: labelMaxSize, anchor: anchor, angleRadians: labelRotationAngleRadians)
+                }
             }
         }
     }
