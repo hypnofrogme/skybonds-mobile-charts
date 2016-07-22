@@ -346,7 +346,7 @@ public class BarChartRenderer: ChartDataRendererBase
                 }
                 if (!dataSet.isStacked)
                 {
-                    if textCross(text: newVals, points: points, formatter: formatter, attributes: [NSFontAttributeName: valueFont, NSForegroundColorAttributeName: dataSet.valueTextColorAt(0)]) {
+                    if !textCross(text: newVals, points: points, formatter: formatter, attributes: [NSFontAttributeName: valueFont, NSForegroundColorAttributeName: dataSet.valueTextColorAt(0)]) {
                         for j in 0 ..< Int(ceil(CGFloat(dataSet.entryCount) * animator.phaseX))
                         {
                             //                        guard let e = dataSet.entryForIndex(j) as? BarChartDataEntry else { continue }
