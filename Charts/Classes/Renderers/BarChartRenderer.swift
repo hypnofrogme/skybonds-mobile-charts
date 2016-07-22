@@ -604,7 +604,7 @@ public class BarChartRenderer: ChartDataRendererBase
             rectsForText.append(CGRectMake(points[i].x, points[i].y, newSize.width + 1, newSize.height))
         }
         
-        for j in 0 ..< rectsForText.count {
+        for j in 0 ..< rectsForText.count - 1 {
             if CGRectIntersectsRect(rectsForText[j], rectsForText[j + 1]) {
                 return true
             }
