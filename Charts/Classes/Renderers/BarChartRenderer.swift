@@ -330,41 +330,46 @@ public class BarChartRenderer: ChartDataRendererBase
                 let groupSpace = barData.groupSpace
                 
                 // if only single values are drawn (sum)
+                var newVals = [Double]()
+                var points = [CGPoint]()
+                for k in 0 ..< Int(ceil(CGFloat(dataSet.entryCount) * animator.phaseX)) {
+                    guard let e = dataSet.entryForIndex(k) as? BarChartDataEntry else { continue }
+                    points.append(trans.getTransformedValueBarChart(
+                        entry: e,
+                        xIndex: e.xIndex,
+                        dataSetIndex: dataSetIndex,
+                        phaseY: phaseY,
+                        dataSetCount: dataSetCount,
+                        groupSpace: groupSpace))
+                    newVals.append(e.value)
+//                    values.append(formatter.stringFromNumber(e.value)!)
+                }
                 if (!dataSet.isStacked)
                 {
-                    for j in 0 ..< Int(ceil(CGFloat(dataSet.entryCount) * animator.phaseX))
-                    {
-                        guard let e = dataSet.entryForIndex(j) as? BarChartDataEntry else { continue }
-                        
-                        let valuePoint = trans.getTransformedValueBarChart(
-                            entry: e,
-                            xIndex: e.xIndex,
-                            dataSetIndex: dataSetIndex,
-                            phaseY: phaseY,
-                            dataSetCount: dataSetCount,
-                            groupSpace: groupSpace
-                        )
-                        
-                        if (!viewPortHandler.isInBoundsRight(valuePoint.x))
+                    if textCross(text: newVals, points: points, formatter: formatter, attributes: [NSFontAttributeName: valueFont, NSForegroundColorAttributeName: dataSet.valueTextColorAt(0)]) {
+                        for j in 0 ..< Int(ceil(CGFloat(dataSet.entryCount) * animator.phaseX))
                         {
-                            break
+                            //                        guard let e = dataSet.entryForIndex(j) as? BarChartDataEntry else { continue }
+                            
+                            if (!viewPortHandler.isInBoundsRight(points[j].x))
+                            {
+                                break
+                            }
+                            
+                            if (!viewPortHandler.isInBoundsY(points[j].y)
+                                || !viewPortHandler.isInBoundsLeft(points[j].x))
+                            {
+                                continue
+                            }
+                            
+                            drawValue(context: context,
+                                      value: formatter.stringFromNumber(newVals[j])!,
+                                      xPos: points[j].x,
+                                      yPos: points[j].y + (newVals[j] >= 0.0 ? posOffset : negOffset),
+                                      font: valueFont,
+                                      align: .Center,
+                                      color: dataSet.valueTextColorAt(j))
                         }
-                        
-                        if (!viewPortHandler.isInBoundsY(valuePoint.y)
-                            || !viewPortHandler.isInBoundsLeft(valuePoint.x))
-                        {
-                            continue
-                        }
-                        
-                        let val = e.value
-
-                        drawValue(context: context,
-                            value: formatter.stringFromNumber(val)!,
-                            xPos: valuePoint.x,
-                            yPos: valuePoint.y + (val >= 0.0 ? posOffset : negOffset),
-                            font: valueFont,
-                            align: .Center,
-                            color: dataSet.valueTextColorAt(j))
                     }
                 }
                 else
@@ -588,6 +593,24 @@ public class BarChartRenderer: ChartDataRendererBase
         }
         
         CGContextRestoreGState(context)
+    }
+    
+    internal func textCross(text text: [Double], points: [CGPoint], formatter: NSNumberFormatter, attributes: [String : AnyObject]?) -> Bool {
+        var rectsForText = [CGRect]()
+        for i in 0..<text.count {
+            let newValue = text[i];
+            let str = formatter.stringFromNumber(newValue) as String!
+            let newSize = str.sizeWithAttributes(attributes)
+            rectsForText.append(CGRectMake(points[i].x, points[i].y, newSize.width + 1, newSize.height))
+        }
+        
+        for j in 0 ..< rectsForText.count {
+            if CGRectIntersectsRect(rectsForText[j], rectsForText[j + 1]) {
+                return true
+            }
+        }
+
+        return false
     }
     
     internal func passesCheck() -> Bool
