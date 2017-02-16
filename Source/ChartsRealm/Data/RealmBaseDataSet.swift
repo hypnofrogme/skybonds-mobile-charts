@@ -2,9 +2,6 @@
 //  RealmBaseDataSet.swift
 //  Charts
 //
-//  Created by Daniel Cohen Gindi on 23/2/15.
-
-//
 //  Copyright 2015 Daniel Cohen Gindi & Philipp Jahoda
 //  A port of MPAndroidChart for iOS
 //  Licensed under Apache License 2.0
@@ -17,11 +14,12 @@ import Foundation
 import Charts
 #endif
 import Realm
+import RealmSwift
 import Realm.Dynamic
 
-public class RealmBaseDataSet: ChartBaseDataSet
+open class RealmBaseDataSet: ChartBaseDataSet
 {
-    public func initialize()
+    open func initialize()
     {
         fatalError("RealmBaseDataSet is an abstract class, you must inherit from it. Also please do not call super.initialize().")
     }
@@ -48,7 +46,7 @@ public class RealmBaseDataSet: ChartBaseDataSet
         initialize()
     }
     
-    public init(results: RLMResults?, yValueField: String, xIndexField: String?, label: String?)
+    public init(results: RLMResults<RLMObject>?, xValueField: String?, yValueField: String, label: String?)
     {
         super.init()
         
@@ -59,30 +57,82 @@ public class RealmBaseDataSet: ChartBaseDataSet
         
         _results = results
         _yValueField = yValueField
-        _xIndexField = xIndexField
-        _results = _results?.sortedResultsUsingProperty(_xIndexField!, ascending: true)
+        _xValueField = xValueField
+        
+        if _xValueField != nil
+        {
+            _results = _results?.sortedResults(usingProperty: _xValueField!, ascending: true)
+        }
         
         notifyDataSetChanged()
         
         initialize()
     }
     
-    public convenience init(results: RLMResults?, yValueField: String, label: String?)
+    public convenience init(results: Results<Object>?, xValueField: String?, yValueField: String, label: String?)
     {
-        self.init(results: results, yValueField: yValueField, xIndexField: nil, label: label)
+        var converted: RLMResults<RLMObject>?
+        
+        if results != nil
+        {
+            converted = ObjectiveCSupport.convert(object: results!)
+        }
+        
+        self.init(results: converted, xValueField: xValueField, yValueField: yValueField, label: label)
     }
     
-    public convenience init(results: RLMResults?, yValueField: String, xIndexField: String?)
+    public convenience init(results: RLMResults<RLMObject>?, yValueField: String, label: String?)
     {
-        self.init(results: results, yValueField: yValueField, xIndexField: xIndexField, label: "DataSet")
+        self.init(results: results, xValueField: nil, yValueField: yValueField, label: label)
     }
     
-    public convenience init(results: RLMResults?, yValueField: String)
+    public convenience init(results: Results<Object>?, yValueField: String, label: String?)
+    {
+        var converted: RLMResults<RLMObject>?
+        
+        if results != nil
+        {
+            converted = ObjectiveCSupport.convert(object: results!)
+        }
+        
+        self.init(results: converted, yValueField: yValueField, label: label)
+    }
+    
+    public convenience init(results: RLMResults<RLMObject>?, xValueField: String?, yValueField: String)
+    {
+        self.init(results: results, xValueField: xValueField, yValueField: yValueField, label: "DataSet")
+    }
+    
+    public convenience init(results: Results<Object>?, xValueField: String?, yValueField: String)
+    {
+        var converted: RLMResults<RLMObject>?
+        
+        if results != nil
+        {
+            converted = ObjectiveCSupport.convert(object: results!)
+        }
+        
+        self.init(results: converted, xValueField: xValueField, yValueField: yValueField)
+    }
+    
+    public convenience init(results: RLMResults<RLMObject>?, yValueField: String)
     {
         self.init(results: results, yValueField: yValueField)
     }
     
-    public init(realm: RLMRealm?, modelName: String, resultsWhere: String, yValueField: String, xIndexField: String?, label: String?)
+    public convenience init(results: Results<Object>?, yValueField: String)
+    {
+        var converted: RLMResults<RLMObject>?
+        
+        if results != nil
+        {
+            converted = ObjectiveCSupport.convert(object: results!)
+        }
+        
+        self.init(results: converted, yValueField: yValueField)
+    }
+    
+    public init(realm: RLMRealm?, modelName: String, resultsWhere: String, xValueField: String?, yValueField: String, label: String?)
     {
         super.init()
         
@@ -92,27 +142,51 @@ public class RealmBaseDataSet: ChartBaseDataSet
         self.label = label
         
         _yValueField = yValueField
-        _xIndexField = xIndexField
+        _xValueField = xValueField
         
         if realm != nil
         {
-            loadResults(realm!, modelName: modelName)
+            loadResults(realm: realm!, modelName: modelName)
         }
         
         initialize()
     }
     
+    public convenience init(realm: Realm?, modelName: String, resultsWhere: String, xValueField: String?, yValueField: String, label: String?)
+    {
+        var converted: RLMRealm?
+        
+        if realm != nil
+        {
+            converted = ObjectiveCSupport.convert(object: realm!)
+        }
+        
+        self.init(realm: converted, modelName: modelName, resultsWhere: resultsWhere, xValueField: xValueField, yValueField: yValueField, label: label)
+    }
+    
     public convenience init(realm: RLMRealm?, modelName: String, resultsWhere: String, yValueField: String, label: String?)
     {
-        self.init(realm: realm, modelName: modelName, resultsWhere: resultsWhere, yValueField: yValueField, xIndexField: nil, label: label)
+        self.init(realm: realm, modelName: modelName, resultsWhere: resultsWhere, xValueField: nil, yValueField: yValueField, label: label)
     }
     
-    public func loadResults(realm: RLMRealm, modelName: String)
+    public convenience init(realm: Realm?, modelName: String, resultsWhere: String, yValueField: String, label: String?)
     {
-        loadResults(realm, modelName: modelName, predicate: nil)
+        var converted: RLMRealm?
+        
+        if realm != nil
+        {
+            converted = ObjectiveCSupport.convert(object: realm!)
+        }
+        
+        self.init(realm: converted, modelName: modelName, resultsWhere: resultsWhere, yValueField: yValueField, label: label)
     }
     
-    public func loadResults(realm: RLMRealm, modelName: String, predicate: NSPredicate?)
+    open func loadResults(realm: RLMRealm, modelName: String)
+    {
+        loadResults(realm: realm, modelName: modelName, predicate: nil)
+    }
+    
+    open func loadResults(realm: RLMRealm, modelName: String, predicate: NSPredicate?)
     {
         if predicate == nil
         {
@@ -120,88 +194,63 @@ public class RealmBaseDataSet: ChartBaseDataSet
         }
         else
         {
-            _results = realm.objects(modelName, withPredicate: predicate!)
+            _results = realm.objects(modelName, with: predicate!)
         }
         
-        if _xIndexField != nil
+        if _xValueField != nil
         {
-            _results = _results?.sortedResultsUsingProperty(_xIndexField!, ascending: true)
+            _results = _results?.sortedResults(usingProperty: _xValueField!, ascending: true)
         }
     
         notifyDataSetChanged()
     }
     
+    @nonobjc
+    open func loadResults(realm: Realm, modelName: String)
+    {
+        loadResults(realm: ObjectiveCSupport.convert(object: realm), modelName: modelName)
+    }
+    
+    @nonobjc
+    open func loadResults(realm: Realm, modelName: String, predicate: NSPredicate?)
+    {
+        loadResults(realm: ObjectiveCSupport.convert(object: realm), modelName: modelName, predicate: predicate)
+    }
+    
     // MARK: - Data functions and accessors
     
-    internal var _results: RLMResults?
+    internal var _results: RLMResults<RLMObject>?
     internal var _yValueField: String?
-    internal var _xIndexField: String?
+    internal var _xValueField: String?
     internal var _cache = [ChartDataEntry]()
-    internal var _cacheFirst: Int = -1
-    internal var _cacheLast: Int = -1
     
-    internal var _yMax = Double(0.0)
-    internal var _yMin = Double(0.0)
+    internal var _yMax: Double = -DBL_MAX
+    internal var _yMin: Double = DBL_MAX
     
-    /// the last start value used for calcMinMax
-    internal var _lastStart: Int = 0
-    
-    /// the last end value used for calcMinMax
-    internal var _lastEnd: Int = 0
+    internal var _xMax: Double = -DBL_MAX
+    internal var _xMin: Double = DBL_MAX
     
     /// Makes sure that the cache is populated for the specified range
-    internal func ensureCache(start: Int, end: Int)
+    internal func buildCache()
     {
-        if start <= _cacheLast && end >= _cacheFirst
-        {
-            return
-        }
-        
         guard let results = _results else { return }
         
-        if _cacheFirst == -1 || _cacheLast == -1
-        {
-            _cache.removeAll()
-            _cache.reserveCapacity(end - start + 1)
-            
-            for i in UInt(start) ..< UInt(end + 1)
-            {
-                _cache.append(buildEntryFromResultObject(results.objectAtIndex(i), atIndex: i))
-            }
-            
-            _cacheFirst = start
-            _cacheLast = end
-        }
+        _cache.removeAll()
+        _cache.reserveCapacity(Int(results.count))
         
-        if start < _cacheFirst
-        {
-            var newEntries = [ChartDataEntry]()
-            newEntries.reserveCapacity(start - _cacheFirst)
-            
-            for i in UInt(start) ..< UInt(_cacheFirst)
-            {
-                newEntries.append(buildEntryFromResultObject(results.objectAtIndex(i), atIndex: i))
-            }
-            
-            _cache.insertContentsOf(newEntries, at: 0)
-            
-            _cacheFirst = start
-        }
+        var xValue: Double = 0.0
         
-        if end > _cacheLast
+        let iterator = NSFastEnumerationIterator(results)
+        while let e = iterator.next()
         {
-            for i in UInt(_cacheLast + 1) ..< UInt(end + 1)
-            {
-                _cache.append(buildEntryFromResultObject(results.objectAtIndex(i), atIndex: i))
-            }
-            
-            _cacheLast = end
+            _cache.append(buildEntryFromResultObject(e as! RLMObject, x: xValue))
+            xValue += 1.0
         }
     }
     
-    internal func buildEntryFromResultObject(object: RLMObject, atIndex: UInt) -> ChartDataEntry
+    internal func buildEntryFromResultObject(_ object: RLMObject, x: Double) -> ChartDataEntry
     {
-        let entry = ChartDataEntry(value: object[_yValueField!] as! Double, xIndex: _xIndexField == nil ? Int(atIndex) : object[_xIndexField!] as! Int)
+        let entry = ChartDataEntry(x: _xValueField == nil ? x : object[_xValueField!] as! Double, y: object[_yValueField!] as! Double)
         
         return entry
     }
@@ -210,194 +259,315 @@ public class RealmBaseDataSet: ChartBaseDataSet
     internal func clearCache()
     {
         _cache.removeAll()
-        _cacheFirst = -1
-        _cacheLast = -1
     }
     
     /// Use this method to tell the data set that the underlying data has changed
-    public override func notifyDataSetChanged()
+    open override func notifyDataSetChanged()
     {
-        calcMinMax(start: _lastStart, end: _lastEnd)
+        buildCache()
+        calcMinMax()
     }
     
-    public override func calcMinMax(start start: Int, end: Int)
+    open override func calcMinMax()
     {
-        let yValCount = self.entryCount
-        
-        if yValCount == 0
-        {
-            return
-        }
-        
-        var endValue : Int
-        
-        if end == 0 || end >= yValCount
-        {
-            endValue = yValCount - 1
-        }
-        else
-        {
-            endValue = end
-        }
-        
-        ensureCache(start, end: endValue)
-        
         if _cache.count == 0
         {
             return
         }
         
-        _lastStart = start
-        _lastEnd = endValue
-        
-        _yMin = DBL_MAX
         _yMax = -DBL_MAX
+        _yMin = DBL_MAX
+        _xMax = -DBL_MAX
+        _xMin = DBL_MAX
         
-        for i in start.stride(through: endValue, by: 1)
+        for e in _cache
         {
-            let e = _cache[i - _cacheFirst]
-            
-            if (!e.value.isNaN)
-            {
-                if (e.value < _yMin)
-                {
-                    _yMin = e.value
-                }
-                if (e.value > _yMax)
-                {
-                    _yMax = e.value
-                }
-            }
-        }
-        
-        if (_yMin == DBL_MAX)
-        {
-            _yMin = 0.0
-            _yMax = 0.0
+            calcMinMax(entry: e)
         }
     }
     
-    /// - returns: the minimum y-value this DataSet holds
-    public override var yMin: Double { return _yMin }
-    
-    /// - returns: the maximum y-value this DataSet holds
-    public override var yMax: Double { return _yMax }
-    
-    /// - returns: the number of y-values this DataSet represents
-    public override var entryCount: Int { return Int(_results?.count ?? 0) }
-    
-    /// - returns: the value of the Entry object at the given xIndex. Returns NaN if no value is at the given x-index.
-    public override func yValForXIndex(x: Int) -> Double
+     /// Updates the min and max x and y value of this DataSet based on the given Entry.
+     ///
+     /// - parameter e:
+    internal func calcMinMax(entry e: ChartDataEntry)
     {
-        let e = self.entryForXIndex(x)
-        
-        if (e !== nil && e!.xIndex == x) { return e!.value }
-        else { return Double.NaN }
-    }
-    
-    /// - returns: all of the y values of the Entry objects at the given xIndex. Returns NaN if no value is at the given x-index.
-    public override func yValsForXIndex(x: Int) -> [Double]
-    {
-        let entries = self.entriesForXIndex(x)
-        
-        var yVals = [Double]()
-        for e in entries
+        if e.y < _yMin
         {
-            yVals.append(e.value)
+            _yMin = e.y
         }
-        
-        return yVals
+        if e.y > _yMax
+        {
+            _yMax = e.y
+        }
+        if e.x < _xMin
+        {
+            _xMin = e.x
+        }
+        if e.x > _xMax
+        {
+            _xMax = e.x
+        }
     }
+
+    /// - returns: The minimum y-value this DataSet holds
+    open override var yMin: Double { return _yMin }
     
-    /// - returns: the entry object found at the given index (not x-index!)
+    /// - returns: The maximum y-value this DataSet holds
+    open override var yMax: Double { return _yMax }
+    
+    /// - returns: The minimum x-value this DataSet holds
+    open override var xMin: Double { return _xMin }
+    
+    /// - returns: The maximum x-value this DataSet holds
+    open override var xMax: Double { return _xMax }
+    
+    /// - returns: The number of y-values this DataSet represents
+    open override var entryCount: Int { return Int(_results?.count ?? 0) }
+    
+    /// - returns: The entry object found at the given index (not x-value!)
     /// - throws: out of bounds
     /// if `i` is out of bounds, it may throw an out-of-bounds exception
-    public override func entryForIndex(i: Int) -> ChartDataEntry?
+    open override func entryForIndex(_ i: Int) -> ChartDataEntry?
     {
-        if i < _lastStart || i > _lastEnd
+        if _cache.count == 0
         {
-            ensureCache(i, end: i)
+            buildCache()
         }
-        return _cache[i - _lastStart]
+        return _cache[i]
     }
     
-    /// - returns: the first Entry object found at the given xIndex with binary search.
-    /// If the no Entry at the specifed x-index is found, this method returns the Entry at the closest x-index.
-    /// nil if no Entry object at that index.
-    public override func entryForXIndex(x: Int, rounding: ChartDataSetRounding) -> ChartDataEntry?
+    /// - returns: The first Entry object found at the given x-value with binary search.
+    /// If the no Entry at the specified x-value is found, this method returns the Entry at the closest x-value according to the rounding.
+    /// nil if no Entry object at that x-value.
+    /// - parameter xValue: the x-value
+    /// - parameter closestToY: If there are multiple y-values for the specified x-value,
+    /// - parameter rounding: determine whether to round up/down/closest if there is no Entry matching the provided x-value
+    open override func entryForXValue(
+        _ xValue: Double,
+        closestToY yValue: Double,
+        rounding: ChartDataSetRounding) -> ChartDataEntry?
     {
-        let index = self.entryIndex(xIndex: x, rounding: rounding)
-        if (index > -1)
+        let index = self.entryIndex(x: xValue, closestToY: yValue, rounding: rounding)
+        if index > -1
         {
             return entryForIndex(index)
         }
         return nil
     }
     
-    /// - returns: the first Entry object found at the given xIndex with binary search.
-    /// If the no Entry at the specifed x-index is found, this method returns the Entry at the closest x-index.
-    /// nil if no Entry object at that index.
-    public override func entryForXIndex(x: Int) -> ChartDataEntry?
+    /// - returns: The first Entry object found at the given x-value with binary search.
+    /// If the no Entry at the specified x-value is found, this method returns the Entry at the closest x-value.
+    /// nil if no Entry object at that x-value.
+    /// - parameter xValue: the x-value
+    /// - parameter closestToY: If there are multiple y-values for the specified x-value,
+    open override func entryForXValue(
+        _ xValue: Double,
+        closestToY y: Double) -> ChartDataEntry?
     {
-        return entryForXIndex(x, rounding: .Closest)
+        return entryForXValue(xValue, closestToY: y, rounding: .closest)
     }
     
-    /// - returns: all Entry objects found at the given xIndex with binary search.
-    /// An empty array if no Entry object at that index.
-    public override func entriesForXIndex(x: Int) -> [ChartDataEntry]
+    /// - returns: All Entry objects found at the given x-value with binary search.
+    /// An empty array if no Entry object at that x-value.
+    open override func entriesForXValue(_ xValue: Double) -> [ChartDataEntry]
     {
-        var entries = [ChartDataEntry]()
+        /*var entries = [ChartDataEntry]()
         
         guard let results = _results else { return entries }
         
-        if _xIndexField == nil
-        {
-            if results.count > UInt(x)
-            {
-                entries.append(buildEntryFromResultObject(results.objectAtIndex(UInt(x)), atIndex: UInt(x)))
-            }
-        }
-        else
+        if _xValueField != nil
         {
             let foundObjects = results.objectsWithPredicate(
-                NSPredicate(format: "%K == %d", _xIndexField!, x)
+                NSPredicate(format: "%K == %f", _xValueField!, x)
             )
             
             for e in foundObjects
             {
-                entries.append(buildEntryFromResultObject(e as! RLMObject, atIndex: UInt(x)))
+                entries.append(buildEntryFromResultObject(e as! RLMObject, x: x))
+            }
+        }
+        
+        return entries*/
+        
+        var entries = [ChartDataEntry]()
+        
+        var low = 0
+        var high = _cache.count - 1
+        
+        while low <= high
+        {
+            var m = (high + low) / 2
+            var entry = _cache[m]
+            
+            if xValue == entry.x
+            {
+                while m > 0 && _cache[m - 1].x == xValue
+                {
+                    m -= 1
+                }
+                
+                high = _cache.count
+                while m < high
+                {
+                    entry = _cache[m]
+                    if entry.x == xValue
+                    {
+                        entries.append(entry)
+                    }
+                    else
+                    {
+                        break
+                    }
+                    
+                    m += 1
+                }
+                
+                break
+            }
+            else
+            {
+                if xValue > entry.x
+                {
+                    low = m + 1
+                }
+                else
+                {
+                    high = m - 1
+                }
             }
         }
         
         return entries
     }
     
-    /// - returns: the array-index of the specified entry
+    /// - returns: The array-index of the specified entry.
+    /// If the no Entry at the specified x-value is found, this method returns the index of the Entry at the closest x-value according to the rounding.
     ///
-    /// - parameter x: x-index of the entry to search for
-    public override func entryIndex(xIndex x: Int, rounding: ChartDataSetRounding) -> Int
+    /// - parameter xValue: x-value of the entry to search for
+    /// - parameter closestToY: If there are multiple y-values for the specified x-value,
+    /// - parameter rounding: Rounding method if exact value was not found
+    open override func entryIndex(
+        x xValue: Double,
+        closestToY yValue: Double,
+        rounding: ChartDataSetRounding) -> Int
     {
-        guard let results = _results else { return -1 }
+        /*guard let results = _results else { return -1 }
         
         let foundIndex = results.indexOfObjectWithPredicate(
-            NSPredicate(format: "%K == %d", _xIndexField!, x)
+            NSPredicate(format: "%K == %f", _xValueField!, x)
         )
         
         // TODO: Figure out a way to quickly find the closest index
         
-        return Int(foundIndex)
+        return Int(foundIndex)*/
+        
+        var low = 0
+        var high = _cache.count - 1
+        var closest = high
+        
+        while low < high
+        {
+            let m = (low + high) / 2
+            
+            let d1 = _cache[m].x - xValue
+            let d2 = _cache[m + 1].x - xValue
+            let ad1 = abs(d1), ad2 = abs(d2)
+            
+            if ad2 < ad1
+            {
+                // [m + 1] is closer to xValue
+                // Search in an higher place
+                low = m + 1
+            }
+            else if ad1 < ad2
+            {
+                // [m] is closer to xValue
+                // Search in a lower place
+                high = m
+            }
+            else
+            {
+                // We have multiple sequential x-value with same distance
+                
+                if d1 >= 0.0
+                {
+                    // Search in a lower place
+                    high = m
+                }
+                else if d1 < 0.0
+                {
+                    // Search in an higher place
+                    low = m + 1
+                }
+            }
+            
+            closest = high
+        }
+        
+        if closest != -1
+        {
+            let closestXValue = _cache[closest].x
+            
+            if rounding == .up
+            {
+                // If rounding up, and found x-value is lower than specified x, and we can go upper...
+                if closestXValue < xValue && closest < _cache.count - 1
+                {
+                    closest += 1
+                }
+            }
+            else if rounding == .down
+            {
+                // If rounding down, and found x-value is upper than specified x, and we can go lower...
+                if closestXValue > xValue && closest > 0
+                {
+                    closest -= 1
+                }
+            }
+            
+            // Search by closest to y-value
+            if !yValue.isNaN
+            {
+                while closest > 0 && _cache[closest - 1].x == closestXValue
+                {
+                    closest -= 1
+                }
+                
+                var closestYValue = _cache[closest].y
+                var closestYIndex = closest
+                
+                while true
+                {
+                    closest += 1
+                    if closest >= _cache.count { break }
+                    
+                    let value = _cache[closest]
+                    
+                    if value.x != closestXValue { break }
+                    if abs(value.y - yValue) < abs(closestYValue - yValue)
+                    {
+                        closestYValue = yValue
+                        closestYIndex = closest
+                    }
+                }
+                
+                closest = closestYIndex
+            }
+        }
+        
+        return closest
     }
     
-    /// - returns: the array-index of the specified entry
+    /// - returns: The array-index of the specified entry
     ///
     /// - parameter e: the entry to search for
-    public override func entryIndex(entry e: ChartDataEntry) -> Int
+    open override func entryIndex(entry e: ChartDataEntry) -> Int
     {
         for i in 0 ..< _cache.count
         {
-            if (_cache[i] === e || _cache[i].isEqual(e))
+            if _cache[i] === e || _cache[i].isEqual(e)
             {
-                return _cacheFirst + i
+                return i
             }
         }
         
@@ -405,30 +575,30 @@ public class RealmBaseDataSet: ChartBaseDataSet
     }
     
     /// Not supported on Realm datasets
-    public override func addEntry(e: ChartDataEntry) -> Bool
+    open override func addEntry(_ e: ChartDataEntry) -> Bool
     {
         return false
     }
     
     /// Not supported on Realm datasets
-    public override func addEntryOrdered(e: ChartDataEntry) -> Bool
+    open override func addEntryOrdered(_ e: ChartDataEntry) -> Bool
     {
         return false
     }
     
     /// Not supported on Realm datasets
-    public override func removeEntry(entry: ChartDataEntry) -> Bool
+    open override func removeEntry(_ entry: ChartDataEntry) -> Bool
     {
         return false
     }
     
     /// Checks if this DataSet contains the specified Entry.
-    /// - returns: true if contains the entry, false if not.
-    public override func contains(e: ChartDataEntry) -> Bool
+    /// - returns: `true` if contains the entry, `false` ifnot.
+    open override func contains(_ e: ChartDataEntry) -> Bool
     {
         for entry in _cache
         {
-            if (entry.isEqual(e))
+            if entry.isEqual(e)
             {
                 return true
             }
@@ -437,8 +607,8 @@ public class RealmBaseDataSet: ChartBaseDataSet
         return false
     }
     
-    /// Returns the fieldname that represents the "y-values" in the realm-data.
-    public var yValueField: String?
+    /// - returns: The fieldname that represents the "y-values" in the realm-data.
+    open var yValueField: String?
     {
         get
         {
@@ -446,28 +616,28 @@ public class RealmBaseDataSet: ChartBaseDataSet
         }
     }
     
-    /// Returns the fieldname that represents the "x-index" in the realm-data.
-    public var xIndexField: String?
+    /// - returns: The fieldname that represents the "x-values" in the realm-data.
+    open var xValueField: String?
     {
         get
         {
-            return _xIndexField
+            return _xValueField
         }
     }
     
     // MARK: - NSCopying
     
-    public override func copyWithZone(zone: NSZone) -> AnyObject
+    open override func copyWithZone(_ zone: NSZone?) -> AnyObject
     {
         let copy = super.copyWithZone(zone) as! RealmBaseDataSet
         
         copy._results = _results
         copy._yValueField = _yValueField
-        copy._xIndexField = _xIndexField
+        copy._xValueField = _xValueField
         copy._yMax = _yMax
         copy._yMin = _yMin
-        copy._lastStart = _lastStart
-        copy._lastEnd = _lastEnd
+        copy._xMax = _xMax
+        copy._xMin = _xMin
         
         return copy
     }

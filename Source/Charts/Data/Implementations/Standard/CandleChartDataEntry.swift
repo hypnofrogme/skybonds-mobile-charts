@@ -83,9 +83,9 @@ public class CandleChartDataEntry: ChartDataEntry
     {
         let copy = super.copyWithZone(zone) as! CandleChartDataEntry
         copy.high = high
-        copy.high = low
-        copy.high = open
-        copy.high = close
+        copy.low = low
+        copy.open = open
+        copy.close = close
         return copy
     }
 }

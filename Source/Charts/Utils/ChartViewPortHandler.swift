@@ -200,6 +200,12 @@ public class ChartViewPortHandler: NSObject
         return zoom(scaleX: 0.7, scaleY: 0.7, x: x, y: y)
     }
     
+    /// Zooms out to original size.
+    open func resetZoom() -> CGAffineTransform
+    {
+        return zoom(scaleX: 1.0, scaleY: 1.0, x: 0.0, y: 0.0)
+    }
+    
     /// Sets the scale factor to the specified values.
     public func setZoom(scaleX scaleX: CGFloat, scaleY: CGFloat) -> CGAffineTransform
     {

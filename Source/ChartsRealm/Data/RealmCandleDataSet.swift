@@ -2,9 +2,6 @@
 //  RealmCandleDataSet.swift
 //  Charts
 //
-//  Created by Daniel Cohen Gindi on 23/2/15.
-
-//
 //  Copyright 2015 Daniel Cohen Gindi & Philipp Jahoda
 //  A port of MPAndroidChart for iOS
 //  Licensed under Apache License 2.0
@@ -18,11 +15,12 @@ import CoreGraphics
 import Charts
 #endif
 import Realm
+import RealmSwift
 import Realm.Dynamic
 
-public class RealmCandleDataSet: RealmLineScatterCandleRadarDataSet, ICandleChartDataSet
+open class RealmCandleDataSet: RealmLineScatterCandleRadarDataSet, ICandleChartDataSet
 {
-    public override func initialize()
+    open override func initialize()
     {
 
     }
@@ -32,29 +30,65 @@ public class RealmCandleDataSet: RealmLineScatterCandleRadarDataSet, ICandleChar
         super.init()
     }
 
-    public init(results: RLMResults?, highField: String, lowField: String, openField: String, closeField: String, xIndexField: String, label: String?)
+    public init(results: RLMResults<RLMObject>?, xValueField: String, highField: String, lowField: String, openField: String, closeField: String, label: String?)
     {
         _highField = highField
         _lowField = lowField
         _openField = openField
         _closeField = closeField
         
-        super.init(results: results, yValueField: "", xIndexField: xIndexField, label: label)
+        super.init(results: results, xValueField: xValueField, yValueField: "", label: label)
     }
     
-    public convenience init(results: RLMResults?, highField: String, lowField: String, openField: String, closeField: String, xIndexField: String)
+    public convenience init(results: Results<Object>?, xValueField: String, highField: String, lowField: String, openField: String, closeField: String, label: String?)
     {
-        self.init(results: results, highField: highField, lowField: lowField, openField: openField, closeField: closeField, xIndexField: xIndexField, label: "DataSet")
+        var converted: RLMResults<RLMObject>?
+        
+        if results != nil
+        {
+            converted = ObjectiveCSupport.convert(object: results!)
+        }
+        
+        self.init(results: converted, xValueField: xValueField, highField: highField, lowField: lowField, openField: openField, closeField: closeField, label: label)
     }
     
-    public init(realm: RLMRealm?, modelName: String, resultsWhere: String, highField: String, lowField: String, openField: String, closeField: String, xIndexField: String, label: String?)
+    public convenience init(results: RLMResults<RLMObject>?, xValueField: String, highField: String, lowField: String, openField: String, closeField: String)
+    {
+        self.init(results: results, xValueField: xValueField, highField: highField, lowField: lowField, openField: openField, closeField: closeField, label: "DataSet")
+    }
+    
+    public convenience init(results: Results<Object>?, xValueField: String, highField: String, lowField: String, openField: String, closeField: String)
+    {
+        var converted: RLMResults<RLMObject>?
+        
+        if results != nil
+        {
+            converted = ObjectiveCSupport.convert(object: results!)
+        }
+        
+        self.init(results: converted, xValueField: xValueField, highField: highField, lowField: lowField, openField: openField, closeField: closeField)
+    }
+    
+    public init(realm: RLMRealm?, modelName: String, resultsWhere: String, xValueField: String, highField: String, lowField: String, openField: String, closeField: String, label: String?)
     {
         _highField = highField
         _lowField = lowField
         _openField = openField
         _closeField = closeField
         
-        super.init(realm: realm, modelName: modelName, resultsWhere: resultsWhere, yValueField: "", xIndexField: xIndexField, label: label)
+        super.init(realm: realm, modelName: modelName, resultsWhere: resultsWhere, xValueField: xValueField, yValueField: "", label: label)
+    }
+    
+    public convenience init(realm: Realm?, modelName: String, resultsWhere: String, xValueField: String, highField: String, lowField: String, openField: String, closeField: String, label: String?)
+    {
+        var converted: RLMRealm?
+        
+        if realm != nil
+        {
+            converted = ObjectiveCSupport.convert(object: realm!)
+        }
+        
+        self.init(realm: converted, modelName: modelName, resultsWhere: resultsWhere, xValueField: xValueField, highField: highField, lowField: lowField, openField: openField, closeField: closeField, label: label)
     }
     
     // MARK: - Data functions and accessors
@@ -64,10 +98,10 @@ public class RealmCandleDataSet: RealmLineScatterCandleRadarDataSet, ICandleChar
     internal var _openField: String?
     internal var _closeField: String?
     
-    internal override func buildEntryFromResultObject(object: RLMObject, atIndex: UInt) -> ChartDataEntry
+    internal override func buildEntryFromResultObject(_ object: RLMObject, x: Double) -> ChartDataEntry
     {
         let entry = CandleChartDataEntry(
-            xIndex: _xIndexField == nil ? Int(atIndex) : object[_xIndexField!] as! Int,
+            x: _xValueField == nil ? x : object[_xValueField!] as! Double,
             shadowH: object[_highField!] as! Double,
             shadowL: object[_lowField!] as! Double,
             open: object[_openField!] as! Double,
@@ -76,51 +110,37 @@ public class RealmCandleDataSet: RealmLineScatterCandleRadarDataSet, ICandleChar
         return entry
     }
     
-    public override func calcMinMax(start start: Int, end: Int)
+    open override func calcMinMax()
     {
-        let yValCount = self.entryCount
-        
-        if yValCount == 0
-        {
-            return
-        }
-        
-        var endValue : Int
-        
-        if end == 0 || end >= yValCount
-        {
-            endValue = yValCount - 1
-        }
-        else
-        {
-            endValue = end
-        }
-        
-        ensureCache(start, end: endValue)
-        
         if _cache.count == 0
         {
             return
         }
         
-        _lastStart = start
-        _lastEnd = end
-        
-        _yMin = DBL_MAX
         _yMax = -DBL_MAX
+        _yMin = DBL_MAX
+        _xMax = -DBL_MAX
+        _xMin = DBL_MAX
         
-        for i in start.stride(through: endValue, by: 1)
+        for e in _cache as! [CandleChartDataEntry]
         {
-            let e = _cache[i - _cacheFirst] as! CandleChartDataEntry
-            
-            if (e.low < _yMin)
+            if e.low < _yMin
             {
                 _yMin = e.low
             }
             
-            if (e.high > _yMax)
+            if e.high > _yMax
             {
                 _yMax = e.high
+            }
+            
+            if e.x < _xMin
+            {
+                _xMin = e.x
+            }
+            if e.x > _xMax
+            {
+                _xMax = e.x
             }
         }
     }
@@ -130,19 +150,19 @@ public class RealmCandleDataSet: RealmLineScatterCandleRadarDataSet, ICandleChar
     /// the space between the candle entries
     ///
     /// **default**: 0.1 (10%)
-    private var _barSpace = CGFloat(0.1)
+    fileprivate var _barSpace = CGFloat(0.1)
     
     /// the space that is left out on the left and right side of each candle,
     /// **default**: 0.1 (10%), max 0.45, min 0.0
-    public var barSpace: CGFloat
+    open var barSpace: CGFloat
     {
         set
         {
-            if (newValue < 0.0)
+            if newValue < 0.0
             {
                 _barSpace = 0.0
             }
-            else if (newValue > 0.45)
+            else if newValue > 0.45
             {
                 _barSpace = 0.45
             }
@@ -161,42 +181,42 @@ public class RealmCandleDataSet: RealmLineScatterCandleRadarDataSet, ICandleChar
     /// when false, only "ticks" will show
     ///
     /// **default**: true
-    public var showCandleBar: Bool = true
+    open var showCandleBar: Bool = true
     
     /// the width of the candle-shadow-line in pixels.
     ///
     /// **default**: 3.0
-    public var shadowWidth = CGFloat(1.5)
+    open var shadowWidth = CGFloat(1.5)
     
     /// the color of the shadow line
-    public var shadowColor: NSUIColor?
+    open var shadowColor: NSUIColor?
     
     /// use candle color for the shadow
-    public var shadowColorSameAsCandle = false
+    open var shadowColorSameAsCandle = false
     
     /// Is the shadow color same as the candle color?
-    public var isShadowColorSameAsCandle: Bool { return shadowColorSameAsCandle }
+    open var isShadowColorSameAsCandle: Bool { return shadowColorSameAsCandle }
     
     /// color for open == close
-    public var neutralColor: NSUIColor?
+    open var neutralColor: NSUIColor?
     
     /// color for open > close
-    public var increasingColor: NSUIColor?
+    open var increasingColor: NSUIColor?
     
     /// color for open < close
-    public var decreasingColor: NSUIColor?
+    open var decreasingColor: NSUIColor?
     
     /// Are increasing values drawn as filled?
     /// increasing candlesticks are traditionally hollow
-    public var increasingFilled = false
+    open var increasingFilled = false
     
     /// Are increasing values drawn as filled?
-    public var isIncreasingFilled: Bool { return increasingFilled }
+    open var isIncreasingFilled: Bool { return increasingFilled }
     
     /// Are decreasing values drawn as filled?
     /// descreasing candlesticks are traditionally filled
-    public var decreasingFilled = true
+    open var decreasingFilled = true
     
     /// Are decreasing values drawn as filled?
-    public var isDecreasingFilled: Bool { return decreasingFilled }
+    open var isDecreasingFilled: Bool { return decreasingFilled }
 }

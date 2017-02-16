@@ -61,7 +61,6 @@
     _chartView.pinchZoomEnabled = NO;
     
     _chartView.drawBarShadowEnabled = NO;
-    _chartView.drawValueAboveBarEnabled = YES;
     
     _chartView.leftAxis.enabled = NO;
     _chartView.rightAxis.axisMaxValue = 25.0;
